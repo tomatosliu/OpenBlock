@@ -1,12 +1,15 @@
-from typing import List
 import os.path as osp
 import torchvision
-from mmengine.dataset import BaseDataset
-from mmengine.registry import DATASETS
+import torch
+import numpy as np
+from typing import Dict, List, Optional
+
+from .base_dataset import OpenBlockDataset, TaskType
+from ..registry import DATASETS
 
 
 @DATASETS.register_module()
-class CIFAR10Dataset(BaseDataset):
+class CIFAR10Dataset(OpenBlockDataset):
     """CIFAR10 Dataset for OpenBlock.
 
     Args:
@@ -19,7 +22,8 @@ class CIFAR10Dataset(BaseDataset):
     METAINFO = {
         'classes': ('plane', 'car', 'bird', 'cat', 'deer',
                     'dog', 'frog', 'horse', 'ship', 'truck'),
-        'task_type': 'classification',
+        'task_type': TaskType.CLASSIFICATION.value,
+        'num_classes': 10
     }
 
     def __init__(self,
@@ -27,11 +31,20 @@ class CIFAR10Dataset(BaseDataset):
                  data_prefix: dict,
                  test_mode: bool = False,
                  pipeline: List[dict] = None):
+        # Initialize dataset first
+        self._dataset = torchvision.datasets.CIFAR10(
+            root=data_root,
+            train=not test_mode,
+            download=True)  # Auto download if not exists
+
+        # CIFAR10 doesn't need annotation file
         super().__init__(
             data_root=data_root,
+            ann_file='',  # Empty string as we don't need annotation file
             data_prefix=data_prefix,
+            pipeline=pipeline,
             test_mode=test_mode,
-            pipeline=pipeline)
+            task_type=TaskType.CLASSIFICATION.value)
 
     def load_data_list(self) -> List[dict]:
         """Load annotation data.
@@ -39,17 +52,11 @@ class CIFAR10Dataset(BaseDataset):
         Returns:
             List[dict]: A list of annotation data
         """
-        # Load CIFAR10 using torchvision
-        dataset = torchvision.datasets.CIFAR10(
-            root=self.data_root,
-            train=not self.test_mode,
-            download=False)  # Already downloaded
-
         data_list = []
-        for idx, (img, label) in enumerate(dataset):
+        for idx, (img, label) in enumerate(self._dataset):
             info = {
                 'img_id': idx,
-                'img_path': osp.join(self.data_root, f'img_{idx}.png'),
+                'img': np.array(img),  # Convert PIL Image to numpy array
                 'gt_label': int(label),
             }
             data_list.append(info)

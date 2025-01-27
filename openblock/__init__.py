@@ -2,4 +2,15 @@
 OpenBlock - Deep Learning Model Optimization and Inference Toolkit
 """
 
-__version__ = '0.1.0'
+from .version import __version__, short_version
+from .registry import (DATASETS, TRANSFORMS, SAMPLERS, MODELS, VISUALIZERS)
+
+__all__ = [
+    '__version__',
+    'short_version',
+    'DATASETS',
+    'TRANSFORMS',
+    'SAMPLERS',
+    'MODELS',
+    'VISUALIZERS'
+]
